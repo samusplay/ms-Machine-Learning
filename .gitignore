@@ -1,0 +1,17 @@
+# Variables de entorno (¡CRÍTICO!)
+.env
+.env.*
+
+# Archivos compilados de Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Entornos virtuales
+venv/
+env/
+
+# Editores de código
+.vscode/
+.idea/
