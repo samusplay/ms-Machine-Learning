@@ -2,8 +2,8 @@ from abc import ABC, abstractmethod
 from typing import Dict
 
 
-#Puerto Para traerse la configuracion
+#Firma ojo dene tener el mismo nombre 
 class IConfigClient(ABC):
     @abstractmethod
-    def get_active_weights(self) -> Dict[str, float]:
+    async def get_active_weights(self) -> Dict[str, float]:
         pass
