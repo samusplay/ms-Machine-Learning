@@ -1,6 +1,10 @@
 # app/application/scoring_service.py
 
+import asyncio
+import os
 from typing import Any, Dict
+
+import httpx
 
 from app.application.strategies import (
     GradientBoostingStrategy,
@@ -19,7 +23,7 @@ class ScoringService:
         self.analytics_client = analytics_client
         self.config_client = config_client
         self.model_repository = model_repository
-        
+
         # Registro dinámico de estrategias
         self.strategies = {
             "linear": LinearRegressionStrategy(),
@@ -56,8 +60,11 @@ class ScoringService:
             metrics=prediction_output.get("metrics", {}),
             execution_time_ms=prediction_output.get("execution_time_ms")
         )
-        
+
         self.model_repository.save_experiment(experiment)
+
+        # CA 5 — Evento asíncrono hacia ms-audit (fire and forget)
+        asyncio.create_task(self._notify_audit(experiment))
 
         # 5. Formato de Salida Final (Contrato de API)
         return {
@@ -67,3 +74,26 @@ class ScoringService:
             "results": prediction_output.get("results"),
             "model_metrics": prediction_output.get("metrics")
         }
+
+#Metodo Para Brayan
+    async def _notify_audit(self, experiment: MLExperimentEntity):
+        """CA 5 — Notifica a ms-audit de forma asíncrona sin bloquear el pipeline."""
+        audit_url = os.getenv("MS_AUDIT_URL", "http://ms-auditoria:8000")
+        try:
+            async with httpx.AsyncClient() as client:
+                await client.post(
+                    f"{audit_url}/api/v1/audit/events",
+                    json={
+                        "event_type": "ML_MODEL_UPDATED",
+                        "service": "ms-ml",
+                        "message": "La inteligencia predictiva ha sido actualizada",
+                        "metadata": {
+                            "dataset_id": experiment.dataset_id,
+                            "strategy": experiment.strategy_name,
+                            "metrics": experiment.metrics
+                        }
+                    },
+                    timeout=3.0
+                )
+        except Exception as e:
+            print(f"⚠️ Audit event failed (non-blocking): {e}")
