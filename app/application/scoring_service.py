@@ -5,17 +5,16 @@ import os
 from typing import Any, Dict
 from app.application.recommendation_engine import RecommendationEngine
 
+
 import httpx
 
-# pyrefly: ignore [missing-import]
 from app.application.strategies import (
-
     GradientBoostingStrategy,
-   KNNStrategy,
-   LinearRegressionStrategy,
-   RandomForestStrategy,
+    KNNStrategy,
+    LinearRegressionStrategy,
+    RandomForestStrategy,
 )
-# pyrefly: ignore [missing-import]
+
 from app.domain.entities import MLExperimentEntity
 
 
@@ -56,6 +55,7 @@ class ScoringService:
         # 3. Ejecución de la Inteligencia (Entrenamiento + Predicción)
         prediction_output = strategy.train_and_predict(zones_data, weights)
 
+
         # Generación de recomendaciones de negocio
         extracted_factors = []
 
@@ -74,6 +74,7 @@ class ScoringService:
         recommendations = RecommendationEngine.build_recommendations(
             extracted_factors
         )
+
 
         # 4. Persistencia y Trazabilidad (CA 5)
         experiment = MLExperimentEntity(
@@ -95,18 +96,20 @@ class ScoringService:
             "algorithm_used": strategy.get_model_name(),
             "execution_time_ms": prediction_output.get("execution_time_ms"),
             "results": prediction_output.get("results"),
+
             "recommendations": recommendations,
+
             "model_metrics": prediction_output.get("metrics")
         }
 
-#Metodo Para Brayan
-    async def _notify_audit(self, experiment: MLExperimentEntity):
-        """CA 5 — Notifica a ms-audit de forma asíncrona sin bloquear el pipeline."""
-        audit_url = os.getenv("MS_AUDIT_URL", "http://ms-auditoria:8000")
+        #Metodo Para Brayan
+        async def _notify_audit(self, experiment: MLExperimentEntity):
+        #"""CA 5 — Notifica a ms-audit de forma asíncrona sin bloquear el pipeline."""
+         audit_url = os.getenv("MS_AUDIT_URL", "http://ms-auditoria:8000")
         try:
             async with httpx.AsyncClient() as client:
                 await client.post(
-                    f"{audit_url}/api/v1/audit/events",
+                     f"{audit_url}/api/v1/audit/events",
                     json={
                         "event_type": "ML_MODEL_UPDATED",
                         "service": "ms-ml",

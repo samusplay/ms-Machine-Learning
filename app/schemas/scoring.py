@@ -21,6 +21,7 @@ class ModelEvidenceSchema(BaseModel):
     algorithm: str
     main_factors: List[MainFactorSchema]
 
+<<<<<<< HEAD
 
 # NUEVO
 class RecommendationSchema(BaseModel):
@@ -30,6 +31,8 @@ class RecommendationSchema(BaseModel):
     type: str
 
 
+=======
+>>>>>>> develop
 class ZoneResultSchema(BaseModel):
     zone_code: str
     potential_score: float
@@ -45,7 +48,9 @@ class ScoringResponse(BaseModel):
     execution_time_ms: int
     data: List[ZoneResultSchema]
 
+
     # NUEVO
     recommendations: List[RecommendationSchema]
+
 
     model_metrics: Dict[str, Any]
