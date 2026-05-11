@@ -21,7 +21,6 @@ class ModelEvidenceSchema(BaseModel):
     algorithm: str
     main_factors: List[MainFactorSchema]
 
-<<<<<<< HEAD
 
 # NUEVO
 class RecommendationSchema(BaseModel):
@@ -31,8 +30,7 @@ class RecommendationSchema(BaseModel):
     type: str
 
 
-=======
->>>>>>> develop
+
 class ZoneResultSchema(BaseModel):
     zone_code: str
     potential_score: float
