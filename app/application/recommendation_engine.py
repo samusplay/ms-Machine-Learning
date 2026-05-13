@@ -6,9 +6,20 @@ from typing import List, Dict, Any
 class RecommendationEngine:
 
     RULES = {
-        "Competencia Alta": {
+
+        "Competencia": {
             "message": "Desarrollar una estrategia de precios agresiva y fortalecer diferenciadores de marca.",
             "type": "risk"
+        },
+
+        "Población": {
+            "message": "Incrementar campañas de captación y expansión comercial debido al alto flujo potencial de clientes.",
+            "type": "opportunity"
+        },
+
+        "Ingresos": {
+            "message": "Potenciar productos premium y estrategias de fidelización debido al alto poder adquisitivo.",
+            "type": "opportunity"
         },
 
         "Infraestructura Vial": {
@@ -16,17 +27,7 @@ class RecommendationEngine:
             "type": "opportunity"
         },
 
-        "Alta Densidad Poblacional": {
-            "message": "Incrementar campañas de captación y expansión comercial debido al alto flujo potencial de clientes.",
-            "type": "opportunity"
-        },
-
-        "Bajo Poder Adquisitivo": {
-            "message": "Diseñar productos o servicios de bajo costo adaptados al mercado local.",
-            "type": "risk"
-        },
-
-        "Turismo Elevado": {
+        "Turismo": {
             "message": "Implementar estrategias comerciales orientadas a visitantes y consumidores temporales.",
             "type": "opportunity"
         }
@@ -45,6 +46,7 @@ class RecommendationEngine:
             variable_name = item.get("variable")
             impact = item.get("weight", 0)
 
+            # Buscar regla
             rule = cls.RULES.get(variable_name)
 
             if not rule:
@@ -57,4 +59,15 @@ class RecommendationEngine:
                 "type": rule["type"]
             })
 
-        return recommendations
+        # =====================================
+        # ORDENAR POR MAYOR IMPACTO
+        # =====================================
+        recommendations.sort(
+            key=lambda x: abs(x["impact"]),
+            reverse=True
+        )
+
+        # =====================================
+        # DEVOLVER SOLO TOP 5
+        # =====================================
+        return recommendations[:5]

@@ -34,13 +34,17 @@ async def execute_scoring(
         )
         
         return {
-            "success": True,
-            "dataset_id": result["dataset_id"],
-            "algorithm_used": result["algorithm_used"],
-            "execution_time_ms": result["execution_time_ms"],
-            "data": result["results"],
-            "model_metrics": result["model_metrics"]
-        }
+    "success": True,
+    "dataset_id": dataset_id,
+    "algorithm_used": result["algorithm_used"],
+    "execution_time_ms": result["execution_time_ms"],
+    "data": result["results"],
+
+    # NUEVO
+    "recommendations": result["recommendations"],
+
+    "model_metrics": result["model_metrics"]
+}
         
     except ValueError as ve:
         raise HTTPException(status_code=400, detail=str(ve))
