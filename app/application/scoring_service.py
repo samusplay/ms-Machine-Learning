@@ -1,4 +1,4 @@
-# app/application/scoring_service.py
+# app/application/scoring_service.py — completo
 
 import asyncio
 import os
@@ -17,14 +17,10 @@ from app.domain.entities import MLExperimentEntity
 
 class ScoringService:
     def __init__(self, analytics_client, config_client, model_repository):
-        """
-        Inyectamos los 'Ports' (Interfaces) para cumplir con DIP.
-        """
         self.analytics_client = analytics_client
         self.config_client = config_client
         self.model_repository = model_repository
 
-        # Registro dinámico de estrategias
         self.strategies = {
             "linear": LinearRegressionStrategy(),
             "knn": KNNStrategy(),
@@ -33,9 +29,7 @@ class ScoringService:
         }
 
     async def execute_scoring_pipeline(self, dataset_id: str, strategy_name: str) -> Dict[str, Any]:
-        """
-        Orquestación del Pipeline de ML (CA 1, CA 2, CA 5).
-        """
+
         # 1. Obtención de Datos Reales (CA 1)
         weights = await self.config_client.get_active_weights()
         zones_data = await self.analytics_client.get_normalized_zones(dataset_id)
@@ -43,16 +37,16 @@ class ScoringService:
         if not zones_data:
             raise ValueError(f"El dataset {dataset_id} no contiene zonas procesables.")
 
-        # 2. Selección de Estrategia (Patrón Strategy - CA 2)
+        # 2. Selección de Estrategia (CA 2)
         strategy = self.strategies.get(strategy_name.lower())
         if not strategy:
             available = list(self.strategies.keys())
             raise ValueError(f"La estrategia '{strategy_name}' no está implementada. Disponibles: {available}")
 
-        # 3. Ejecución de la Inteligencia (Entrenamiento + Predicción)
+        # 3. Ejecución
         prediction_output = strategy.train_and_predict(zones_data, weights)
 
-        # 4. Persistencia y Trazabilidad (CA 5)
+        # 4. Persistencia (CA 5) — guardamos experimento Y predicciones por zona (HU-20)
         experiment = MLExperimentEntity(
             dataset_id=dataset_id,
             strategy_name=strategy.get_model_name(),
@@ -60,13 +54,18 @@ class ScoringService:
             metrics=prediction_output.get("metrics", {}),
             execution_time_ms=prediction_output.get("execution_time_ms")
         )
+        experiment = self.model_repository.save_experiment(experiment)  # ← ahora retorna con id
 
-        self.model_repository.save_experiment(experiment)
+        # Guardamos cada zona individualmente para que GET /predictions/{zone_code} funcione
+        self.model_repository.save_zone_predictions(
+            experiment_id=experiment.id,
+            predictions=prediction_output.get("results", [])
+        )
 
-        # CA 5 — Evento asíncrono hacia ms-audit (fire and forget)
+        # CA 5 — Notificación asíncrona a ms-audit
         asyncio.create_task(self._notify_audit(experiment))
 
-        # 5. Formato de Salida Final (Contrato de API)
+        # 5. Salida final
         return {
             "dataset_id": dataset_id,
             "algorithm_used": strategy.get_model_name(),
@@ -75,9 +74,7 @@ class ScoringService:
             "model_metrics": prediction_output.get("metrics")
         }
 
-#Metodo Para Brayan
     async def _notify_audit(self, experiment: MLExperimentEntity):
-        """CA 5 — Notifica a ms-audit de forma asíncrona sin bloquear el pipeline."""
         audit_url = os.getenv("MS_AUDIT_URL", "http://ms-auditoria:8000")
         try:
             async with httpx.AsyncClient() as client:

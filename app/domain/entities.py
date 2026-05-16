@@ -26,3 +26,17 @@ class TrainedModelEntity:
     id: Optional[int] = None
     is_active: bool = False
     created_at: datetime = field(default_factory=datetime.utcnow)
+#Clase para Guardar las predicciones por cada zona(Brandon paso1 )
+@dataclass
+class ZonePredictionEntity:
+    experiment_id: int
+    zone_code: str
+    zone_name: str
+    potential_score: float
+    confidence: float
+    label: str
+    business_summary: str
+    color_code: str
+    algorithm: str
+    id: Optional[int] = None
+    created_at: datetime = field(default_factory=datetime.utcnow)

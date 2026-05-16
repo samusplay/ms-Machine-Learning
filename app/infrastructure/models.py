@@ -1,6 +1,15 @@
 from datetime import datetime
 
-from sqlalchemy import JSON, Boolean, Column, DateTime, ForeignKey, Integer, String
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    Column,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+)
 from sqlalchemy.orm import relationship
 
 from app.infrastructure.database import Base  # Tu instancia de DeclarativeBase
@@ -26,6 +35,8 @@ class MLExperiment(Base):
 
     # Relación uno a uno: un experimento genera un modelo
     trained_model = relationship("TrainedModel", back_populates="experiment", uselist=False)
+    zone_predictions = relationship("ZonePrediction", back_populates="experiment")
+
 
 
 class TrainedModel(Base):
@@ -48,3 +59,20 @@ class TrainedModel(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     experiment = relationship("MLExperiment", back_populates="trained_model")
+
+class ZonePrediction(Base):
+    __tablename__ = "zone_predictions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    experiment_id = Column(Integer, ForeignKey("ml_experiments.id"), nullable=False)
+    zone_code = Column(String, index=True, nullable=False)
+    zone_name = Column(String, nullable=False)
+    potential_score = Column(Float, nullable=False)
+    confidence = Column(Float, nullable=False)
+    label = Column(String, nullable=False)
+    business_summary = Column(String, nullable=False)
+    color_code = Column(String, nullable=False)
+    algorithm = Column(String, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    experiment = relationship("MLExperiment", back_populates="zone_predictions")

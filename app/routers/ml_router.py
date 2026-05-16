@@ -1,6 +1,7 @@
 # app/routers/ml_router.py
 
 import traceback
+import uuid
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -48,3 +49,42 @@ async def execute_scoring(
         traceback.print_exc()  # ← imprime el traceback completo en los logs
         print(f"\n🚨 ERROR DETALLADO: {type(e).__name__}: {e}\n")
         raise HTTPException(status_code=500, detail=f"{type(e).__name__}: {str(e)}")
+    
+@router.get("/predictions/{zone_code}")
+def get_prediction_by_zone(
+    zone_code: str,
+    db: Session = Depends(get_db)
+):
+    trace_id = str(uuid.uuid4())
+    repo = SQLAlchemyModelRepository(db)
+    prediction = repo.get_last_prediction_by_zone(zone_code)
+
+    if not prediction:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "success": False,
+                "data": None,
+                "error": {
+                    "code": "ZONE_NOT_FOUND",
+                    "message": f"No existe predicción para la zona {zone_code}."
+                },
+                "trace_id": trace_id
+            }
+        )
+
+    return {
+        "success": True,
+        "data": {
+            "zone_code": prediction.zone_code,
+            "prediction": {
+                "potential_value": prediction.potential_score,
+                "confidence_score": prediction.confidence,
+                "business_label": prediction.label,
+                "color_code": prediction.color_code,
+            },
+            "model_reference": prediction.algorithm,
+        },
+        "error": None,
+        "trace_id": trace_id
+    }

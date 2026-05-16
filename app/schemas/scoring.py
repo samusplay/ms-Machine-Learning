@@ -36,3 +36,9 @@ class ScoringResponse(BaseModel):
     execution_time_ms: int
     data: List[ZoneResultSchema]
     model_metrics: Dict[str, Any]
+
+class PredictionResponse(BaseModel):
+    success: bool
+    data: Optional[dict] = None
+    error: Optional[dict] = None
+    trace_id: str
