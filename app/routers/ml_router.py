@@ -3,7 +3,7 @@
 import traceback
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Header
 from sqlalchemy.orm import Session
 
 from app.application.scoring_service import ScoringService
@@ -26,8 +26,10 @@ def get_scoring_service(db: Session = Depends(get_db)) -> ScoringService:
 async def execute_scoring(
     dataset_id: str,
     request: ScoringRequest,
-    service: ScoringService = Depends(get_scoring_service)
+    service: ScoringService = Depends(get_scoring_service),
+    x_trace_id: str = Header(None, alias="X-Trace-Id")
 ):
+    trace_id = x_trace_id or str(uuid.uuid4())
     try:
         result = await service.execute_scoring_pipeline(
             dataset_id=dataset_id, 
@@ -53,9 +55,10 @@ async def execute_scoring(
 @router.get("/predictions/{zone_code}")
 def get_prediction_by_zone(
     zone_code: str,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    x_trace_id: str = Header(None, alias="X-Trace-Id")
 ):
-    trace_id = str(uuid.uuid4())
+    trace_id = x_trace_id or str(uuid.uuid4())
     repo = SQLAlchemyModelRepository(db)
     prediction = repo.get_last_prediction_by_zone(zone_code)
 
