@@ -33,7 +33,8 @@ async def execute_scoring(
     try:
         result = await service.execute_scoring_pipeline(
             dataset_id=dataset_id, 
-            strategy_name=request.strategy
+            strategy_name=request.strategy,
+            trace_id=trace_id
         )
         
         return {
