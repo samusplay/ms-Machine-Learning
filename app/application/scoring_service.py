@@ -1,10 +1,7 @@
 # app/application/scoring_service.py — completo
 
 import asyncio
-import os
 from typing import Any, Dict
-
-import httpx
 
 from app.application.strategies import (
     GradientBoostingStrategy,
@@ -16,10 +13,11 @@ from app.domain.entities import MLExperimentEntity
 
 
 class ScoringService:
-    def __init__(self, analytics_client, config_client, model_repository):
+    def __init__(self, analytics_client, config_client, model_repository, audit_client):
         self.analytics_client = analytics_client
         self.config_client = config_client
         self.model_repository = model_repository
+        self.audit_client = audit_client
 
         self.strategies = {
             "linear": LinearRegressionStrategy(),
@@ -28,7 +26,7 @@ class ScoringService:
             "random_forest": RandomForestStrategy()
         }
 
-    async def execute_scoring_pipeline(self, dataset_id: str, strategy_name: str) -> Dict[str, Any]:
+    async def execute_scoring_pipeline(self, dataset_id: str, strategy_name: str, trace_id: str) -> Dict[str, Any]:
 
         # 1. Obtención de Datos Reales (CA 1)
         weights = await self.config_client.get_active_weights()
@@ -63,7 +61,9 @@ class ScoringService:
         )
 
         # CA 5 — Notificación asíncrona a ms-audit
-        asyncio.create_task(self._notify_audit(experiment))
+        results = prediction_output.get("results", [])
+        for zone in results:
+            asyncio.create_task(self._notify_audit_per_zone(zone, trace_id, strategy.get_model_name()))
 
         # 5. Salida final
         return {
@@ -74,23 +74,19 @@ class ScoringService:
             "model_metrics": prediction_output.get("metrics")
         }
 
-    async def _notify_audit(self, experiment: MLExperimentEntity):
-        audit_url = os.getenv("MS_AUDIT_URL", "http://ms-auditoria:8000")
-        try:
-            async with httpx.AsyncClient() as client:
-                await client.post(
-                    f"{audit_url}/api/v1/audit/events",
-                    json={
-                        "event_type": "ML_MODEL_UPDATED",
-                        "service": "ms-ml",
-                        "message": "La inteligencia predictiva ha sido actualizada",
-                        "metadata": {
-                            "dataset_id": experiment.dataset_id,
-                            "strategy": experiment.strategy_name,
-                            "metrics": experiment.metrics
-                        }
-                    },
-                    timeout=3.0
-                )
-        except Exception as e:
-            print(f"⚠️ Audit event failed (non-blocking): {e}")
+    async def _notify_audit_per_zone(self, zone: dict, trace_id: str, model_name: str):
+        zone_code = zone.get("zone_code")
+        if not zone_code:
+            return
+        details = {
+            "potential_score": zone.get("potential_score"),
+            "confidence": zone.get("confidence"),
+            "label": zone.get("interpretation", {}).get("label"),
+            "algorithm": model_name
+        }
+        await self.audit_client.send_prediction_event(
+            zone_code=zone_code,
+            model_version=model_name,
+            trace_id=trace_id,
+            details=details
+        )

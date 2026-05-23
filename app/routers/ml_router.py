@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.application.scoring_service import ScoringService
 from app.infrastructure.clients.http_analytics_client import HttpAnalyticsClient
+from app.infrastructure.clients.http_audit_client import HttpAuditClient
 from app.infrastructure.clients.http_config_client import HttpConfigClient
 from app.infrastructure.database import get_db
 from app.infrastructure.sqlalchemy_model_repository import SQLAlchemyModelRepository
@@ -19,7 +20,8 @@ def get_scoring_service(db: Session = Depends(get_db)) -> ScoringService:
     return ScoringService(
         analytics_client=HttpAnalyticsClient(),
         config_client=HttpConfigClient(),
-        model_repository=SQLAlchemyModelRepository(db)
+        model_repository=SQLAlchemyModelRepository(db),
+        audit_client=HttpAuditClient()
     )
 
 @router.post("/execute/{dataset_id}", response_model=ScoringResponse)
@@ -33,7 +35,8 @@ async def execute_scoring(
     try:
         result = await service.execute_scoring_pipeline(
             dataset_id=dataset_id, 
-            strategy_name=request.strategy
+            strategy_name=request.strategy,
+            trace_id=trace_id
         )
         
         return {

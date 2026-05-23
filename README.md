@@ -1,1 +1,1 @@
-# ms-Machine-Learning
+# ms-ml

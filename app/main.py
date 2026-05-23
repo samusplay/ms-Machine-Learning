@@ -17,7 +17,7 @@ async def lifespan(app: FastAPI):
         Base.metadata.create_all(bind=engine)
         print("\033[92m✅ Tablas de Machine learning sincronizadas\033[0m")
     except Exception as e:
-        print(f"\033[91m🚨 Error creando tablas en MS-Machine Learning: {e}\033[0m")
+        print(f"\033[91m🚨 Error creando tablas en ms-ml: {e}\033[0m")
 
    
     if check_db_connection():
@@ -42,4 +42,4 @@ app.include_router(api_router,prefix="/api/v1/ml")
 
 @app.get("/api/v1/ml/health", tags=["IA"])
 def health():
-    return {"status": "ok", "service": "ms-Machine Learning"}
+    return {"status": "ok", "service": "ms-ml"}
