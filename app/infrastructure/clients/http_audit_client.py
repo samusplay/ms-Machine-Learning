@@ -1,6 +1,7 @@
 import logging
 import os
 import httpx
+from datetime import datetime
 
 from app.domain.ports.audit_client_interface import IAuditClient
 
@@ -34,4 +35,14 @@ class HttpAuditClient(IAuditClient):
                 )
                 response.raise_for_status()
         except Exception as e:
-            logger.warning(f"Fallo auditoría zona {zone_code}: {e}")
+            # DEGRADACIÓN CONTROLADA (CA-5):
+            # Si ms-auditoria falla por latencia o caída temporal,
+            # capturamos la excepción para no interrumpir el flujo
+            # principal. El error queda registrado en logs internos
+            # para seguimiento, pero no afecta la respuesta al usuario.
+            logger.warning(
+                f"[AUDIT-FAIL] {datetime.now()} | "
+                f"event_type: {payload.get('event_type', 'UNKNOWN')} | "
+                f"service: {payload.get('service_name', payload.get('source_service', 'UNKNOWN'))} | "
+                f"causa: {str(e)}"
+            )
